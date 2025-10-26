@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Salas</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-container">
+            <div class="header">
+                <div>
+                    <h1>🏫 Dashboard</h1>
+                    <div class="user-info">
+                        <span id="userName"></span>
+                        <span id="userRole" class="badge"></span>
+                    </div>
+                </div>
+                <div>
+                    <button class="btn btn-secondary btn-small" onclick="logout()">Sair</button>
+                </div>
+            </div>
+
+            <div id="alert"></div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('salas')">Salas Disponíveis</button>
+                <button class="tab" onclick="switchTab('minhas-reservas')">Minhas Reservas</button>
+                <button class="tab" id="pendentesTab" onclick="switchTab('pendentes')" style="display: none;">
+                    Reservas Pendentes
+                </button>
+                <button class="tab" id="cadastroTab" onclick="window.location.href='cadastro.html'" style="display: none;">
+                    Cadastrar Professor
+                </button>
+            </div>
+
+            <!-- Tab: Salas Disponíveis -->
+            <div id="salas-tab" class="tab-content active">
+                <h2>Salas e Laboratórios</h2>
+                <div id="loadingSalas" class="loading">
+                    <div class="spinner"></div>
+                    <p>Carregando salas...</p>
+                </div>
+                <div id="salasGrid" class="grid"></div>
+            </div>
+
+            <!-- Tab: Minhas Reservas -->
+            <div id="minhas-reservas-tab" class="tab-content">
+                <h2>Minhas Reservas</h2>
+                <div id="loadingReservas" class="loading">
+                    <div class="spinner"></div>
+                    <p>Carregando reservas...</p>
+                </div>
+                <div id="reservasGrid" class="grid"></div>
+            </div>
+
+            <!-- Tab: Reservas Pendentes (Admin) -->
+            <div id="pendentes-tab" class="tab-content">
+                <h2>Reservas Pendentes de Aprovação</h2>
+                <div id="loadingPendentes" class="loading">
+                    <div class="spinner"></div>
+                    <p>Carregando reservas...</p>
+                </div>
+                <div id="pendentesGrid" class="grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Nova Reserva -->
+    <div id="modalReserva" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nova Reserva</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="reservaForm">
+                <input type="hidden" id="roomId">
+                
+                <div class="form-group">
+                    <label>Sala</label>
+                    <input type="text" id="roomName" disabled>
+                </div>
+                
+                <div class="form-group">
+                    <label for="date">Data</label>
+                    <input type="date" id="date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="startTime">Horário de Início</label>
+                    <input type="time" id="startTime" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="endTime">Horário de Término</label>
+                    <input type="time" id="endTime" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="reason">Motivo da Reserva</label>
+                    <textarea id="reason" placeholder="Descreva o motivo da reserva"></textarea>
+                </div>
+
+                <div id="availability" class="room-availability" style="display: none;">
+                    <h3 style="margin-bottom: 10px; font-size: 14px;">Horários Ocupados:</h3>
+                    <div id="availabilityList"></div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Solicitar Reserva</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

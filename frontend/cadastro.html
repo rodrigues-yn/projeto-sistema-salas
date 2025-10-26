@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Professor - Sistema de Salas</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h1>👨‍🏫 Cadastro de Professor</h1>
+        <p class="subtitle">Apenas administradores podem acessar</p>
+        
+        <div id="alert"></div>
+        
+        <form id="cadastroForm">
+            <div class="form-group">
+                <label for="name">Nome Completo</label>
+                <input type="text" id="name" required placeholder="Nome do professor">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required placeholder="email@exemplo.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" required placeholder="Mínimo 6 caracteres">
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Confirmar Senha</label>
+                <input type="password" id="confirmPassword" required placeholder="Repita a senha">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="cadastroBtn">
+                Cadastrar Professor
+            </button>
+            
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
+                Voltar ao Dashboard
+            </button>
+        </form>
+    </div>
+
+    <script src="js/cadastro.js"></script>
+</body>
+</html>
