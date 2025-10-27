@@ -8,12 +8,15 @@ const router = express.Router();
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { status } = req.query;
+    
+    console.log('📋 Buscando reservas - Status:', status, 'User role:', req.user.role);
+    
     let query = supabase
       .from('reservations')
       .select(`
         *,
-        room:rooms(name, type),
-        user:users(name, email)
+        room:rooms(id, name, type, capacity),
+        user:users(id, name, email, role)
       `)
       .order('date', { ascending: true })
       .order('start_time', { ascending: true });
@@ -30,9 +33,14 @@ router.get('/', authMiddleware, async (req, res) => {
 
     const { data: reservations, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Erro ao buscar reservas:', error);
+      throw error;
+    }
 
-    res.json(reservations);
+    console.log('✅ Reservas encontradas:', reservations?.length || 0);
+
+    res.json(reservations || []);
   } catch (error) {
     console.error('Erro ao listar reservas:', error);
     res.status(500).json({ error: 'Erro ao listar reservas' });

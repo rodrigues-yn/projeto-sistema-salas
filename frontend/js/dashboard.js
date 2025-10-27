@@ -11,9 +11,10 @@ if (!token || !user) {
 // Configurar interface baseado no papel do usuário
 document.getElementById('userName').textContent = user.name;
 document.getElementById('userRole').textContent = user.role === 'admin' ? 'Administrador' : 'Professor';
-document.getElementById('userRole').classList.add(user.role === 'admin' ? 'badge-admin' : '');
 
+// Adicionar classe apenas se for admin
 if (user.role === 'admin') {
+    document.getElementById('userRole').classList.add('badge-admin');
     document.getElementById('pendentesTab').style.display = 'block';
     document.getElementById('cadastroTab').style.display = 'block';
 }
@@ -163,17 +164,27 @@ async function loadReservasPendentes() {
     grid.innerHTML = '';
     
     try {
+        console.log('🔍 Buscando reservas pendentes...');
+        
         const response = await fetch(`${API_URL}/reservations?status=pending`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
         
+        console.log('📡 Status da resposta:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`Erro na API: ${response.status}`);
+        }
+        
         const reservas = await response.json();
+        
+        console.log('📋 Reservas pendentes:', reservas);
         
         loading.style.display = 'none';
         
-        if (reservas.length === 0) {
+        if (!reservas || reservas.length === 0) {
             grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>Nenhuma reserva pendente</p></div>';
             return;
         }
@@ -183,10 +194,11 @@ async function loadReservasPendentes() {
             card.className = 'card';
             card.innerHTML = `
                 <div class="card-header">
-                    <h3 class="card-title">${reserva.room.name}</h3>
+                    <h3 class="card-title">${reserva.room?.name || 'Sala não identificada'}</h3>
                     <span class="status-badge status-pending">Pendente</span>
                 </div>
-                <p class="card-info">👤 ${reserva.user.name}</p>
+                <p class="card-info">👤 ${reserva.user?.name || 'Usuário não identificado'}</p>
+                <p class="card-info">📧 ${reserva.user?.email || ''}</p>
                 <p class="card-info">📅 ${formatDate(reserva.date)}</p>
                 <p class="card-info">🕐 ${reserva.start_time} - ${reserva.end_time}</p>
                 ${reserva.reason ? `<p class="card-info">📝 ${reserva.reason}</p>` : ''}
@@ -202,9 +214,9 @@ async function loadReservasPendentes() {
             grid.appendChild(card);
         });
     } catch (error) {
-        console.error('Erro:', error);
+        console.error('❌ Erro ao carregar pendentes:', error);
         loading.style.display = 'none';
-        showAlert('Erro ao carregar reservas pendentes', 'error');
+        showAlert('Erro ao carregar reservas pendentes: ' + error.message, 'error');
     }
 }
 
