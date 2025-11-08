@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'https://projeto-sistema-salas.onrender.com/api';
 
 // Verificar se já está logado
 if (localStorage.getItem('token')) {
