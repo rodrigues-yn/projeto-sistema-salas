@@ -38,12 +38,48 @@
 
             <!-- Tab: Salas Disponíveis -->
             <div id="salas-tab" class="tab-content active">
-                <h2>Salas e Laboratórios</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Salas e Laboratórios</h2>
+                    <button id="btnNovasala" class="btn btn-primary btn-small" style="display: none;" onclick="openNovaSalaModal()">
+                        ➕ Nova Sala
+                    </button>
+                </div>
+                
+                <!-- Filtros e Visualização -->
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 14px;">Visualização:</label>
+                        <select id="viewMode" onchange="changeViewMode()" style="width: 100%; padding: 8px;">
+                            <option value="grid">Grade de Salas</option>
+                            <option value="calendar">Calendário</option>
+                        </select>
+                    </div>
+                    <div id="calendarFilters" style="display: none; flex: 2; gap: 15px; display: flex;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px;">Sala:</label>
+                            <select id="filterRoom" onchange="loadCalendar()" style="width: 100%; padding: 8px;">
+                                <option value="">Selecione uma sala</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px;">Data:</label>
+                            <input type="date" id="filterDate" onchange="loadCalendar()" style="width: 100%; padding: 8px;">
+                        </div>
+                    </div>
+                </div>
+                
                 <div id="loadingSalas" class="loading">
                     <div class="spinner"></div>
                     <p>Carregando salas...</p>
                 </div>
+                
+                <!-- Grade de Salas -->
                 <div id="salasGrid" class="grid"></div>
+                
+                <!-- Calendário -->
+                <div id="calendarView" style="display: none;">
+                    <div id="calendarContainer"></div>
+                </div>
             </div>
 
             <!-- Tab: Minhas Reservas -->

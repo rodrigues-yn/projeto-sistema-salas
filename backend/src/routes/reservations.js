@@ -164,7 +164,12 @@ router.get('/availability/:room_id', authMiddleware, async (req, res) => {
 
     const { data: reservations, error } = await supabase
       .from('reservations')
-      .select('start_time, end_time')
+      .select(`
+        start_time, 
+        end_time, 
+        status,
+        user:users(name, email)
+      `)
       .eq('room_id', room_id)
       .eq('date', date)
       .in('status', ['pending', 'approved'])

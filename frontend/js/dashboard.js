@@ -17,7 +17,13 @@ if (user.role === 'admin') {
     document.getElementById('userRole').classList.add('badge-admin');
     document.getElementById('pendentesTab').style.display = 'block';
     document.getElementById('cadastroTab').style.display = 'block';
+    document.getElementById('btnNovasala').style.display = 'block';
 }
+
+// Variáveis globais
+let allRooms = [];
+let currentViewMode = 'grid';
+let currentReservationData = null;
 
 // Carregar dados iniciais
 loadSalas();
@@ -62,8 +68,19 @@ async function loadSalas() {
         });
         
         const salas = await response.json();
+        allRooms = salas; // Guardar para o calendário
         
         loading.style.display = 'none';
+        
+        // Preencher select de salas para o calendário
+        const filterRoom = document.getElementById('filterRoom');
+        filterRoom.innerHTML = '<option value="">Selecione uma sala</option>';
+        salas.forEach(sala => {
+            const option = document.createElement('option');
+            option.value = sala.id;
+            option.textContent = sala.name;
+            filterRoom.appendChild(option);
+        });
         
         if (salas.length === 0) {
             grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>Nenhuma sala cadastrada</p></div>';
@@ -93,6 +110,141 @@ async function loadSalas() {
         loading.style.display = 'none';
         showAlert('Erro ao carregar salas', 'error');
     }
+}
+
+// Mudar modo de visualização
+function changeViewMode() {
+    const mode = document.getElementById('viewMode').value;
+    currentViewMode = mode;
+    
+    const grid = document.getElementById('salasGrid');
+    const calendar = document.getElementById('calendarView');
+    const filters = document.getElementById('calendarFilters');
+    
+    if (mode === 'grid') {
+        grid.style.display = 'grid';
+        calendar.style.display = 'none';
+        filters.style.display = 'none';
+    } else {
+        grid.style.display = 'none';
+        calendar.style.display = 'block';
+        filters.style.display = 'flex';
+        
+        // Definir data padrão como hoje
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('filterDate').value = today;
+        
+        // Se já tiver uma sala selecionada, carregar
+        const selectedRoom = document.getElementById('filterRoom').value;
+        if (selectedRoom) {
+            loadCalendar();
+        }
+    }
+}
+
+// Carregar calendário
+async function loadCalendar() {
+    const roomId = document.getElementById('filterRoom').value;
+    const date = document.getElementById('filterDate').value;
+    const container = document.getElementById('calendarContainer');
+    
+    if (!roomId || !date) {
+        container.innerHTML = '<div class="calendar-empty">📅 Selecione uma sala e uma data</div>';
+        return;
+    }
+    
+    try {
+        // Buscar reservas para a sala e data
+        const response = await fetch(`${API_URL}/reservations/availability/${roomId}?date=${date}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const reservations = await response.json();
+        
+        // Buscar informações da sala
+        const room = allRooms.find(r => r.id === roomId);
+        
+        // Renderizar calendário
+        renderCalendar(room, date, reservations);
+        
+    } catch (error) {
+        console.error('Erro ao carregar calendário:', error);
+        container.innerHTML = '<div class="calendar-empty">❌ Erro ao carregar disponibilidade</div>';
+    }
+}
+
+// Renderizar calendário
+function renderCalendar(room, date, reservations) {
+    const container = document.getElementById('calendarContainer');
+    const dateObj = new Date(date + 'T00:00:00');
+    const dateFormatted = dateObj.toLocaleDateString('pt-BR', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    let html = `
+        <div class="calendar-container">
+            <div class="calendar-header">
+                ${room.name} - ${dateFormatted}
+            </div>
+            <div class="calendar-timeline">
+                <div class="calendar-hours">
+    `;
+    
+    // Horários de 7h às 22h
+    for (let hour = 7; hour <= 22; hour++) {
+        html += `<div class="calendar-hour">${hour.toString().padStart(2, '0')}:00</div>`;
+    }
+    
+    html += `
+                </div>
+                <div class="calendar-events" id="calendarEventsContainer">
+    `;
+    
+    // Adicionar eventos (reservas)
+    reservations.forEach(reservation => {
+        const startParts = reservation.start_time.split(':');
+        const endParts = reservation.end_time.split(':');
+        const startHour = parseInt(startParts[0]);
+        const startMin = parseInt(startParts[1]);
+        const endHour = parseInt(endParts[0]);
+        const endMin = parseInt(endParts[1]);
+        
+        // Calcular posição e altura
+        const top = ((startHour - 7) * 60 + startMin);
+        const duration = ((endHour - startHour) * 60 + (endMin - startMin));
+        
+        const statusClass = reservation.status || 'approved';
+        const statusText = {
+            'pending': 'Pendente',
+            'approved': 'Confirmada',
+            'rejected': 'Rejeitada'
+        }[statusClass] || 'Confirmada';
+        
+        html += `
+            <div class="calendar-event ${statusClass}" style="top: ${top}px; height: ${duration}px;">
+                <div class="calendar-event-title">${reservation.user?.name || 'Reservado'}</div>
+                <div class="calendar-event-time">${reservation.start_time} - ${reservation.end_time}</div>
+                <div style="font-size: 10px; margin-top: 2px;">${statusText}</div>
+            </div>
+        `;
+    });
+    
+    if (reservations.length === 0) {
+        html += '<div class="calendar-empty">✅ Nenhuma reserva para este dia</div>';
+    }
+    
+    html += `
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
 }
 
 // Carregar minhas reservas
@@ -130,6 +282,8 @@ async function loadMinhasReservas() {
                 'rejected': 'Rejeitada'
             }[reserva.status];
             
+            const canEdit = reserva.status === 'approved' || reserva.status === 'pending';
+            
             card.innerHTML = `
                 <div class="card-header">
                     <h3 class="card-title">${reserva.room.name}</h3>
@@ -138,13 +292,18 @@ async function loadMinhasReservas() {
                 <p class="card-info">📅 ${formatDate(reserva.date)}</p>
                 <p class="card-info">🕐 ${reserva.start_time} - ${reserva.end_time}</p>
                 ${reserva.reason ? `<p class="card-info">📝 ${reserva.reason}</p>` : ''}
-                ${reserva.status === 'pending' ? `
-                    <div class="card-actions">
+                <div class="card-actions">
+                    ${canEdit ? `
+                        <button class="btn btn-primary btn-small" onclick='editarReserva(${JSON.stringify(reserva)})'>
+                            ✏️ Editar
+                        </button>
+                    ` : ''}
+                    ${reserva.status === 'pending' ? `
                         <button class="btn btn-danger btn-small" onclick="cancelarReserva('${reserva.id}')">
                             Cancelar
                         </button>
-                    </div>
-                ` : ''}
+                    ` : ''}
+                </div>
             `;
             grid.appendChild(card);
         });
@@ -431,5 +590,148 @@ function showAlert(message, type) {
 document.getElementById('modalReserva').addEventListener('click', (e) => {
     if (e.target.id === 'modalReserva') {
         closeModal();
+    }
+});
+
+document.getElementById('modalNovaSala').addEventListener('click', (e) => {
+    if (e.target.id === 'modalNovaSala') {
+        closeNovaSalaModal();
+    }
+});
+
+document.getElementById('modalEditarReserva').addEventListener('click', (e) => {
+    if (e.target.id === 'modalEditarReserva') {
+        closeEditarReservaModal();
+    }
+});
+
+// ========================================
+// FUNÇÕES PARA NOVA SALA
+// ========================================
+
+function openNovaSalaModal() {
+    document.getElementById('modalNovaSala').classList.add('active');
+}
+
+function closeNovaSalaModal() {
+    document.getElementById('modalNovaSala').classList.remove('active');
+    document.getElementById('novaSalaForm').reset();
+}
+
+document.getElementById('novaSalaForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('salaNome').value;
+    const capacity = document.getElementById('salaCapacidade').value;
+    const type = document.getElementById('salaTipo').value;
+    const description = document.getElementById('salaDescricao').value;
+    
+    try {
+        const response = await fetch(`${API_URL}/rooms`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ name, capacity: parseInt(capacity), type, description })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showAlert('Sala criada com sucesso!', 'success');
+            closeNovaSalaModal();
+            loadSalas();
+        } else {
+            showAlert(data.error || 'Erro ao criar sala', 'error');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        showAlert('Erro ao conectar com o servidor', 'error');
+    }
+});
+
+// ========================================
+// FUNÇÕES PARA EDITAR RESERVA
+// ========================================
+
+function editarReserva(reserva) {
+    currentReservationData = reserva;
+    
+    document.getElementById('editReservaId').value = reserva.id;
+    document.getElementById('editRoomName').value = reserva.room.name;
+    document.getElementById('editDate').value = reserva.date;
+    document.getElementById('editStartTime').value = reserva.start_time;
+    document.getElementById('editEndTime').value = reserva.end_time;
+    document.getElementById('editReason').value = reserva.reason || '';
+    
+    // Definir data mínima como hoje
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('editDate').setAttribute('min', today);
+    
+    document.getElementById('modalEditarReserva').classList.add('active');
+}
+
+function closeEditarReservaModal() {
+    document.getElementById('modalEditarReserva').classList.remove('active');
+    document.getElementById('editarReservaForm').reset();
+    currentReservationData = null;
+}
+
+document.getElementById('editarReservaForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const date = document.getElementById('editDate').value;
+    const startTime = document.getElementById('editStartTime').value;
+    const endTime = document.getElementById('editEndTime').value;
+    const reason = document.getElementById('editReason').value;
+    
+    // Validar horários
+    if (startTime >= endTime) {
+        showAlert('Horário de término deve ser maior que o de início', 'error');
+        return;
+    }
+    
+    try {
+        // Primeiro, cancelar a reserva antiga
+        const deleteResponse = await fetch(`${API_URL}/reservations/${currentReservationData.id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!deleteResponse.ok) {
+            throw new Error('Erro ao cancelar reserva anterior');
+        }
+        
+        // Depois, criar nova reserva (que ficará pendente)
+        const createResponse = await fetch(`${API_URL}/reservations`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                room_id: currentReservationData.room.id,
+                date,
+                start_time: startTime,
+                end_time: endTime,
+                reason
+            })
+        });
+        
+        const data = await createResponse.json();
+        
+        if (createResponse.ok) {
+            showAlert('Reserva editada! Aguardando nova aprovação do administrador.', 'success');
+            closeEditarReservaModal();
+            loadMinhasReservas();
+        } else {
+            showAlert(data.error || 'Erro ao editar reserva', 'error');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        showAlert('Erro ao conectar com o servidor', 'error');
     }
 });
